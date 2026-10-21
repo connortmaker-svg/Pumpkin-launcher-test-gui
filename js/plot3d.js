@@ -1,6 +1,8 @@
 const PALETTE = Object.freeze({
   bg: "#222222",
   gold: "#D4A329",
+  goldFill: "rgba(212, 163, 41, 0.18)",
+  goldGrid: "rgba(212, 163, 41, 0.45)",
   white: "#F5F5F5",
   muted: "#B5B5B5",
   borderDark: "#3D3D3D",
@@ -51,10 +53,10 @@ export class Plot3DRenderer {
       this._lastX = e.clientX;
       this._lastY = e.clientY;
 
-      this.camAzim += dx * 0.012;
-      const minElev = (5.0 * Math.PI) / 180.0;
-      const maxElev = (80.0 * Math.PI) / 180.0;
-      this.camElev = Math.max(minElev, Math.min(maxElev, this.camElev + dy * 0.012));
+      this.camAzim -= dx * 0.01;
+      const minElev = (6.0 * Math.PI) / 180.0;
+      const maxElev = (78.0 * Math.PI) / 180.0;
+      this.camElev = Math.max(minElev, Math.min(maxElev, this.camElev + dy * 0.01));
 
       this.requestRender();
     });
@@ -154,21 +156,22 @@ export class Plot3DRenderer {
 
     const cx = w * 0.5;
     const cy = h * 0.54;
-    const scale = Math.min(w, h) * 0.36;
+    const scale = Math.min(w, h) * 0.33;
 
-    const cosA = Math.cos(this.camAzim) * scale;
-    const sinA = Math.sin(this.camAzim) * scale;
-    const cosE = Math.cos(this.camElev) * scale;
-    const sinE = Math.sin(this.camElev) * scale;
+    const cosA = Math.cos(this.camAzim);
+    const sinA = Math.sin(this.camAzim);
+    const cosE = Math.cos(this.camElev);
+    const sinE = Math.sin(this.camElev);
 
     const project = (rVal, mVal, fVal) => {
       const nx = (rVal - rMin) * invRSpan - 1.0;
       const ny = (mVal - mMin) * invMSpan - 1.0;
       const nz = (fVal - fMin) * invFSpan - 1.0;
 
-      const sx = nx * cosA - ny * sinA;
-      const ryScaled = nx * sinA + ny * cosA;
-      const sy = -nz * cosE + ryScaled * sinE;
+      const rx = nx * cosA - ny * sinA;
+      const ry = nx * sinA + ny * cosA;
+      const sx = rx * scale;
+      const sy = (-nz * cosE + ry * sinE) * scale;
       return [cx + sx, cy + sy];
     };
 
@@ -204,7 +207,7 @@ export class Plot3DRenderer {
         const p2 = project(rTick, mMax, fMin);
         drawLine(p1, p2, PALETTE.borderDark, 1, [2, 3]);
         ctx.textAlign = "center";
-        ctx.fillText(`${rTick}FT`, p1[0], p1[1] + 13);
+        ctx.fillText(`${rTick}FT`, p1[0], p1[1] + 14);
       }
     }
 
@@ -234,6 +237,51 @@ export class Plot3DRenderer {
       drawLine(boxBottom[i], boxTop[i], PALETTE.borderDark, 1);
     }
 
+    if (coeffs) {
+      const { a, b, c } = coeffs;
+      const c0 = project(rMin, mMin, a * rMin + b * mMin + c);
+      const c1 = project(rMax, mMin, a * rMax + b * mMin + c);
+      const c2 = project(rMax, mMax, a * rMax + b * mMax + c);
+      const c3 = project(rMin, mMax, a * rMin + b * mMax + c);
+
+      ctx.setLineDash([]);
+      ctx.fillStyle = PALETTE.goldFill;
+      ctx.beginPath();
+      ctx.moveTo(c0[0], c0[1]);
+      ctx.lineTo(c1[0], c1[1]);
+      ctx.lineTo(c2[0], c2[1]);
+      ctx.lineTo(c3[0], c3[1]);
+      ctx.closePath();
+      ctx.fill();
+
+      const gridR = 6;
+      const gridM = 4;
+
+      for (let j = 0; j <= gridM; j++) {
+        const mVal = mMin + (mSpan * j) / gridM;
+        const pStart = project(rMin, mVal, a * rMin + b * mVal + c);
+        const pEnd = project(rMax, mVal, a * rMax + b * mVal + c);
+        const col = j === 0 || j === gridM ? PALETTE.gold : PALETTE.goldGrid;
+        drawLine(pStart, pEnd, col, j === 0 || j === gridM ? 1.5 : 1);
+      }
+
+      for (let i = 0; i <= gridR; i++) {
+        const rVal = rMin + (rSpan * i) / gridR;
+        const pStart = project(rVal, mMin, a * rVal + b * mMin + c);
+        const pEnd = project(rVal, mMax, a * rVal + b * mMax + c);
+        const col = i === 0 || i === gridR ? PALETTE.gold : PALETTE.goldGrid;
+        drawLine(pStart, pEnd, col, i === 0 || i === gridR ? 1.5 : 1);
+      }
+
+      for (const rStd of [50, 100, 200, 300]) {
+        if (rStd >= rMin && rStd <= rMax) {
+          const pStart = project(rStd, mMin, a * rStd + b * mMin + c);
+          const pEnd = project(rStd, mMax, a * rStd + b * mMax + c);
+          drawLine(pStart, pEnd, PALETTE.gold, 2, [4, 2]);
+        }
+      }
+    }
+
     const origin = boxBottom[0];
     const axR = boxBottom[1];
     const axM = boxBottom[3];
@@ -249,36 +297,6 @@ export class Plot3DRenderer {
     ctx.fillText("X: RANGE (FT)", (origin[0] + axR[0]) * 0.5, (origin[1] + axR[1]) * 0.5 + 26);
     ctx.fillText("Y: MASS (KG)", axM[0] - 10, axM[1] + 18);
     ctx.fillText("Z: FORCE (LBF)", axF[0], axF[1] - 10);
-
-    if (coeffs) {
-      const { a, b, c } = coeffs;
-      const gridR = 6;
-      const gridM = 4;
-
-      for (let j = 0; j <= gridM; j++) {
-        const mVal = mMin + (mSpan * j) / gridM;
-        const pStart = project(rMin, mVal, a * rMin + b * mVal + c);
-        const pEnd = project(rMax, mVal, a * rMax + b * mVal + c);
-        const col = j === 0 || j === gridM ? PALETTE.gold : PALETTE.borderMid;
-        drawLine(pStart, pEnd, col, 1);
-      }
-
-      for (let i = 0; i <= gridR; i++) {
-        const rVal = rMin + (rSpan * i) / gridR;
-        const pStart = project(rVal, mMin, a * rVal + b * mMin + c);
-        const pEnd = project(rVal, mMax, a * rVal + b * mMax + c);
-        const col = i === 0 || i === gridR ? PALETTE.gold : PALETTE.borderMid;
-        drawLine(pStart, pEnd, col, 1);
-      }
-
-      for (const rStd of [50, 100, 200, 300]) {
-        if (rStd >= rMin && rStd <= rMax) {
-          const pStart = project(rStd, mMin, a * rStd + b * mMin + c);
-          const pEnd = project(rStd, mMax, a * rStd + b * mMax + c);
-          drawLine(pStart, pEnd, PALETTE.gold, 2, [4, 2]);
-        }
-      }
-    }
 
     ctx.setLineDash([]);
     for (let i = 0; i < dataPoints.length; i++) {
@@ -315,13 +333,12 @@ export class Plot3DRenderer {
       ctx.fillRect(tx - 6, ty - 6, 12, 12);
       ctx.strokeRect(tx - 6, ty - 6, 12, 12);
 
-      ctx.textAlign = "left";
+      const labelText = `[${Number(targetRange)}FT, ${Number(targetMass)}KG -> ${predF.toFixed(1)}LBF]`;
       ctx.font = 'bold 12px "Courier New", Courier, monospace';
-      ctx.fillText(
-        `[${Number(targetRange)}FT, ${Number(targetMass)}KG -> ${predF.toFixed(1)}LBF]`,
-        tx + 10,
-        ty - 8
-      );
+      const textW = ctx.measureText(labelText).width;
+      const placeLeft = tx + 12 + textW > w - 8;
+      ctx.textAlign = placeLeft ? "right" : "left";
+      ctx.fillText(labelText, placeLeft ? tx - 10 : tx + 10, Math.max(16, ty - 8));
     }
 
     ctx.restore();

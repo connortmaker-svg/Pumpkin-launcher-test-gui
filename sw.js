@@ -1,4 +1,4 @@
-const CACHE_NAME = "elc-pumpkin-launcher-2026-v2";
+const CACHE_NAME = "elc-pumpkin-launcher-2026-v3";
 const ASSETS = [
   "./",
   "./index.html",

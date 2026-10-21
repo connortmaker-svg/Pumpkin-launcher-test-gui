@@ -1161,8 +1161,8 @@ class PumpkinLauncherGUI:
             return
         self._drag_last = (event.x, event.y)
 
-        self.cam_azim += dx * 0.012
-        self.cam_elev = max(math.radians(5.0), min(math.radians(80.0), self.cam_elev + dy * 0.012))
+        self.cam_azim -= dx * 0.01
+        self.cam_elev = max(math.radians(6.0), min(math.radians(78.0), self.cam_elev + dy * 0.01))
         self._schedule_plot_redraw()
 
     def _on_plot_release(self, _event):
