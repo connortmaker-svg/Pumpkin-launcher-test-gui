@@ -24,12 +24,9 @@
     <nav class="tab-bar" role="tablist">
       <button type="button" class="tab-btn active" data-tab="tabMath">[1] PHYSICS MODEL</button>
       <button type="button" class="tab-btn" data-tab="tabRegression">[2] 3D PLANE REGRESSION</button>
-      <button type="button" class="tab-btn" data-tab="tabSettings">[3] LAUNCHER SETTINGS (CONSTANTS)</button>
+      <button type="button" class="tab-btn" data-tab="tabSettings">[3] LAUNCHER SETTINGS &amp; GITHUB SYNC</button>
     </nav>
 
-    <!-- ================================================================== -->
-    <!-- TAB 1: PHYSICS MATH MODEL                                          -->
-    <!-- ================================================================== -->
     <section id="tabMath" class="tab-panel active">
       <div class="split-grid">
         <div class="col-stack">
@@ -60,7 +57,7 @@
 
               <div class="action-row">
                 <button id="btnResetMath" type="button" class="btn">RESET INPUT DEFAULTS</button>
-                <button id="btnGoSettings" type="button" class="btn">EDIT CONSTANTS &gt;</button>
+                <button id="btnGoSettings" type="button" class="btn">SETTINGS / SYNC &gt;</button>
               </div>
             </div>
           </div>
@@ -118,9 +115,6 @@
       </div>
     </section>
 
-    <!-- ================================================================== -->
-    <!-- TAB 2: 3D PLANE REGRESSION                                         -->
-    <!-- ================================================================== -->
     <section id="tabRegression" class="tab-panel">
       <div class="split-grid-regression">
         <div class="col-stack">
@@ -168,6 +162,11 @@
                 <button id="btnDeleteSelected" type="button" class="btn btn-danger">DELETE SELECTED</button>
                 <button id="btnClearTrials" type="button" class="btn btn-danger">CLEAR ALL</button>
                 <button id="btnLoadSample" type="button" class="btn">LOAD SAMPLE</button>
+              </div>
+
+              <div class="action-row">
+                <button id="btnPushGitHubQuick" type="button" class="btn btn-primary">SAVE TO GITHUB</button>
+                <button id="btnPullGitHubQuick" type="button" class="btn">PULL FROM GITHUB</button>
               </div>
 
               <div class="action-row">
@@ -252,56 +251,88 @@
       </div>
     </section>
 
-    <!-- ================================================================== -->
-    <!-- TAB 3: LAUNCHER SETTINGS (CONSTANTS)                               -->
-    <!-- ================================================================== -->
     <section id="tabSettings" class="tab-panel">
-      <div class="panel">
-        <div class="panel-header">LAUNCHER PHYSICAL CONSTANTS (CHANGES APPLY &amp; SAVE AUTOMATICALLY)</div>
-        <div class="panel-body">
-          <div class="settings-grid">
-            <label class="field-label" for="constSlingMass">SLING MASS m_s (KG)</label>
-            <input id="constSlingMass" class="num-input" type="number" inputmode="decimal" step="any" value="1.5">
-            <div class="settings-desc">Mass of the pouch/sling assembly accelerated by bands</div>
+      <div class="col-stack">
+        <div class="panel">
+          <div class="panel-header">GITHUB REPOSITORY CLOUD SYNC (SAVE &amp; FETCH DATA ACROSS DEVICES)</div>
+          <div class="panel-body">
+            <div class="settings-grid">
+              <label class="field-label" for="ghRepo">GITHUB REPO (OWNER/REPO)</label>
+              <input id="ghRepo" class="num-input" type="text" placeholder="owner/repo">
+              <div class="settings-desc">Auto-detected on *.github.io, or enter e.g. username/Pumpkin-Launcher-2026-Model</div>
 
-            <label class="field-label" for="constBandStrength">SINGLE BAND STRENGTH S (N)</label>
-            <input id="constBandStrength" class="num-input" type="number" inputmode="decimal" step="any" value="55.4913">
-            <div class="settings-desc">Default: 4.4482 * ((14.3 + 21.3/2) / 2) = 55.4913 N</div>
+              <label class="field-label" for="ghBranch">BRANCH NAME</label>
+              <input id="ghBranch" class="num-input" type="text" value="main">
+              <div class="settings-desc">Repository branch where pumpkin_launch_data.csv and launcher_state.json are stored</div>
 
-            <label class="field-label" for="constBandRest">BAND REST LENGTH L_0 (M)</label>
-            <input id="constBandRest" class="num-input" type="number" inputmode="decimal" step="any" value="0.254">
-            <div class="settings-desc">Unstretched length of rubber bands in meters (0.254 m = 10 in)</div>
+              <label class="field-label" for="ghToken">GITHUB ACCESS TOKEN (PAT)</label>
+              <input id="ghToken" class="num-input" type="password" placeholder="ghp_... or github_pat_...">
+              <div class="settings-desc">Required only to PUSH/COMMIT changes back to GitHub (stored privately on this device only)</div>
 
-            <label class="field-label" for="constAngleDeg">LAUNCH ANGLE j (DEGREES)</label>
-            <input id="constAngleDeg" class="num-input" type="number" inputmode="decimal" step="any" value="45">
-            <div class="settings-desc">Elevation angle of the launcher track (0 to 90 degrees)</div>
+              <label class="field-label" for="ghAutoSync">AUTO-SAVE TO GITHUB</label>
+              <input id="ghAutoSync" type="checkbox" checked style="width: 24px; height: 24px; accent-color: #D4A329;">
+              <div class="settings-desc">Automatically commit updated trial data and state to GitHub when token is set</div>
+            </div>
 
-            <label class="field-label" for="constGravity">GRAVITY g (M/S^2)</label>
-            <input id="constGravity" class="num-input" type="number" inputmode="decimal" step="any" value="9.81">
-            <div class="settings-desc">Gravitational acceleration (standard: 9.81 m/s^2)</div>
+            <div class="divider"></div>
 
-            <label class="field-label" for="constDrag">DRAG COEFFICIENT c</label>
-            <input id="constDrag" class="num-input" type="number" inputmode="decimal" step="any" value="0.55">
-            <div class="settings-desc">Aerodynamic sphere/pumpkin drag coefficient (default: 0.55)</div>
-
-            <label class="field-label" for="constAirRho">AIR DENSITY p (KG/M^3)</label>
-            <input id="constAirRho" class="num-input" type="number" inputmode="decimal" step="any" value="1.21">
-            <div class="settings-desc">Local air density (Rochester default: 1.21 kg/m^3)</div>
-
-            <label class="field-label" for="constPumpkinRho">PUMPKIN DENSITY (KG/M^3)</label>
-            <input id="constPumpkinRho" class="num-input" type="number" inputmode="decimal" step="any" value="800">
-            <div class="settings-desc">Average pumpkin density used for sphere radius (default: 800 kg/m^3)</div>
-
-            <label class="field-label" for="constNToLbf">NEWTON TO LBF CONVERSION</label>
-            <input id="constNToLbf" class="num-input" type="number" inputmode="decimal" step="any" value="0.2248">
-            <div class="settings-desc">Conversion factor from Newtons to pounds-force (0.2248 lbf/N)</div>
+            <div class="canvas-toolbar" style="flex-wrap: wrap;">
+              <div id="lblGitHubSyncStatus" class="status-line muted">[READY] LOCAL STORAGE ACTIVE</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button id="btnPullGitHub" type="button" class="btn">PULL FROM GITHUB NOW</button>
+                <button id="btnPushGitHub" type="button" class="btn btn-primary">SAVE / COMMIT TO GITHUB NOW</button>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div class="divider"></div>
+        <div class="panel">
+          <div class="panel-header">LAUNCHER PHYSICAL CONSTANTS (CHANGES APPLY &amp; SAVE AUTOMATICALLY)</div>
+          <div class="panel-body">
+            <div class="settings-grid">
+              <label class="field-label" for="constSlingMass">SLING MASS m_s (KG)</label>
+              <input id="constSlingMass" class="num-input" type="number" inputmode="decimal" step="any" value="1.5">
+              <div class="settings-desc">Mass of the pouch/sling assembly accelerated by bands</div>
 
-          <div class="canvas-toolbar">
-            <div id="lblSettingsStatus" class="status-line">[OK] ALL CONSTANTS VALID AND ACTIVE</div>
-            <button id="btnResetConstants" type="button" class="btn btn-primary">RESET CONSTANTS TO DEFAULTS</button>
+              <label class="field-label" for="constBandStrength">SINGLE BAND STRENGTH S (N)</label>
+              <input id="constBandStrength" class="num-input" type="number" inputmode="decimal" step="any" value="55.4913">
+              <div class="settings-desc">Default: 4.4482 * ((14.3 + 21.3/2) / 2) = 55.4913 N</div>
+
+              <label class="field-label" for="constBandRest">BAND REST LENGTH L_0 (M)</label>
+              <input id="constBandRest" class="num-input" type="number" inputmode="decimal" step="any" value="0.254">
+              <div class="settings-desc">Unstretched length of rubber bands in meters (0.254 m = 10 in)</div>
+
+              <label class="field-label" for="constAngleDeg">LAUNCH ANGLE j (DEGREES)</label>
+              <input id="constAngleDeg" class="num-input" type="number" inputmode="decimal" step="any" value="45">
+              <div class="settings-desc">Elevation angle of the launcher track (0 to 90 degrees)</div>
+
+              <label class="field-label" for="constGravity">GRAVITY g (M/S^2)</label>
+              <input id="constGravity" class="num-input" type="number" inputmode="decimal" step="any" value="9.81">
+              <div class="settings-desc">Gravitational acceleration (standard: 9.81 m/s^2)</div>
+
+              <label class="field-label" for="constDrag">DRAG COEFFICIENT c</label>
+              <input id="constDrag" class="num-input" type="number" inputmode="decimal" step="any" value="0.55">
+              <div class="settings-desc">Aerodynamic sphere/pumpkin drag coefficient (default: 0.55)</div>
+
+              <label class="field-label" for="constAirRho">AIR DENSITY p (KG/M^3)</label>
+              <input id="constAirRho" class="num-input" type="number" inputmode="decimal" step="any" value="1.21">
+              <div class="settings-desc">Local air density (Rochester default: 1.21 kg/m^3)</div>
+
+              <label class="field-label" for="constPumpkinRho">PUMPKIN DENSITY (KG/M^3)</label>
+              <input id="constPumpkinRho" class="num-input" type="number" inputmode="decimal" step="any" value="800">
+              <div class="settings-desc">Average pumpkin density used for sphere radius (default: 800 kg/m^3)</div>
+
+              <label class="field-label" for="constNToLbf">NEWTON TO LBF CONVERSION</label>
+              <input id="constNToLbf" class="num-input" type="number" inputmode="decimal" step="any" value="0.2248">
+              <div class="settings-desc">Conversion factor from Newtons to pounds-force (0.2248 lbf/N)</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="canvas-toolbar">
+              <div id="lblSettingsStatus" class="status-line">[OK] ALL CONSTANTS VALID AND ACTIVE</div>
+              <button id="btnResetConstants" type="button" class="btn btn-primary">RESET CONSTANTS TO DEFAULTS</button>
+            </div>
           </div>
         </div>
       </div>

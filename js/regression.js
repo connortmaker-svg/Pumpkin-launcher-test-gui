@@ -1,7 +1,3 @@
-// =============================================================================
-// ELC PUMPKIN LAUNCHER 2026 - 3D PLANE LEAST-SQUARES REGRESSION MODULE
-// =============================================================================
-
 export const SAMPLE_TRIALS = Object.freeze([
   { force: 42.0, mass: 0.75, range: 55.0 },
   { force: 48.0, mass: 1.05, range: 50.0 },
@@ -13,9 +9,6 @@ export const SAMPLE_TRIALS = Object.freeze([
   { force: 188.0, mass: 1.25, range: 305.0 },
 ]);
 
-/**
- * Solve 3x3 linear system A * x = bVec via Gaussian elimination with partial pivoting.
- */
 export function solve3x3(A, bVec) {
   const M = [
     [A[0][0], A[0][1], A[0][2], bVec[0]],
@@ -54,9 +47,6 @@ export function solve3x3(A, bVec) {
   return [M[0][3], M[1][3], M[2][3]];
 }
 
-/**
- * Fit Force = a * Range + b * Mass + c using Ordinary Least Squares.
- */
 export function fitPlaneModel(dataPoints) {
   const n = dataPoints.length;
   if (n < 3) {

@@ -1,7 +1,3 @@
-// =============================================================================
-// ELC PUMPKIN LAUNCHER 2026 - AERODYNAMIC & ELASTIC BAND PHYSICS MODULE
-// =============================================================================
-
 export const DEFAULT_CONSTANTS = Object.freeze({
   SLING_MASS: 1.5,
   BAND_STRENGTH: Number((4.4482 * ((14.3 + 21.3 / 2.0) / 2.0)).toFixed(4)),
@@ -73,28 +69,23 @@ export function evalPhysicsModel(inputs, constants) {
   const targetM = targetFt * 0.3048;
   const launchedMass = mass + constants.SLING_MASS;
 
-  // Cross-sectional area of sphere: A = pi * r^2
   const radius = Math.cbrt((3.0 * (mass / constants.PUMPKIN_DENSITY)) / (4.0 * Math.PI));
   const area = Math.PI * radius * radius;
 
-  // Drag velocity scale D
   const dragScale = Math.sqrt(
     (2.0 * mass * constants.GRAVITY) /
       (constants.AIR_DENSITY * area * constants.DRAG_COEFFICIENT)
   );
 
-  // Vacuum velocity v_vac and initial velocity with quadratic drag v_0
   const rgSin2j = (targetM * constants.GRAVITY) / sin2j;
   const vVac = Math.sqrt(rgSin2j);
   const vInit = Math.sqrt(rgSin2j * (1.0 + (4.0 * vVac * sinJ) / (3.0 * dragScale)));
 
-  // Band stiffness, elongation factor E_L, draw distance d, stretch ratio S_r
   const stiffness = (constants.BAND_STRENGTH * bands) / constants.BAND_REST_LENGTH;
   const elongation = Math.sqrt(launchedMass / (eff * stiffness));
   const drawDist = elongation * vInit;
   const stretchRatio = drawDist / constants.BAND_REST_LENGTH;
 
-  // Launch force in Newtons and pounds-force
   const forceN = (launchedMass * vInit * vInit) / (eff * drawDist);
   const forceLbf = constants.NEWTON_TO_LBF * forceN;
 

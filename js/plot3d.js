@@ -1,7 +1,3 @@
-// =============================================================================
-// ELC PUMPKIN LAUNCHER 2026 - INTERACTIVE 3D WIREFRAME PLANE RENDERER
-// =============================================================================
-
 const PALETTE = Object.freeze({
   bg: "#222222",
   gold: "#D4A329",
@@ -43,9 +39,7 @@ export class Plot3DRenderer {
       this._lastY = e.clientY;
       try {
         this.canvas.setPointerCapture(e.pointerId);
-      } catch (_err) {
-        // Ignore on older browsers
-      }
+      } catch (_err) {}
     });
 
     this.canvas.addEventListener("pointermove", (e) => {
@@ -112,7 +106,6 @@ export class Plot3DRenderer {
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    // Fill background
     ctx.fillStyle = PALETTE.bg;
     ctx.fillRect(0, 0, w, h);
 
@@ -205,7 +198,6 @@ export class Plot3DRenderer {
     ctx.font = 'bold 11px "Courier New", Courier, monospace';
     ctx.fillStyle = PALETTE.muted;
 
-    // 1. Floor grid lines along Range (50, 100, 200, 300 ft)
     for (const rTick of [50, 100, 200, 300]) {
       if (rTick >= rMin && rTick <= rMax) {
         const p1 = project(rTick, mMin, fMin);
@@ -216,7 +208,6 @@ export class Plot3DRenderer {
       }
     }
 
-    // Floor grid lines along Mass
     const mSteps = 3;
     for (let i = 0; i <= mSteps; i++) {
       const mTick = mMin + (mSpan * i) / mSteps;
@@ -227,7 +218,6 @@ export class Plot3DRenderer {
       ctx.fillText(`${mTick.toFixed(2)}KG`, p2[0] + 6, p2[1] + 4);
     }
 
-    // Z-axis Force ticks
     const zSteps = 4;
     for (let i = 0; i <= zSteps; i++) {
       const fTick = fMin + (fSpan * i) / zSteps;
@@ -238,14 +228,12 @@ export class Plot3DRenderer {
       ctx.fillText(`${Math.round(fTick)}`, pz[0] - 8, pz[1] + 4);
     }
 
-    // Cube wireframe edges
     for (let i = 0; i < 4; i++) {
       drawLine(boxBottom[i], boxBottom[(i + 1) % 4], PALETTE.borderMid, 1);
       drawLine(boxTop[i], boxTop[(i + 1) % 4], PALETTE.borderDark, 1);
       drawLine(boxBottom[i], boxTop[i], PALETTE.borderDark, 1);
     }
 
-    // Primary 3D Axes in Gold
     const origin = boxBottom[0];
     const axR = boxBottom[1];
     const axM = boxBottom[3];
@@ -262,7 +250,6 @@ export class Plot3DRenderer {
     ctx.fillText("Y: MASS (KG)", axM[0] - 10, axM[1] + 18);
     ctx.fillText("Z: FORCE (LBF)", axF[0], axF[1] - 10);
 
-    // 2. Fitted 3D Plane Surface Mesh
     if (coeffs) {
       const { a, b, c } = coeffs;
       const gridR = 6;
@@ -293,7 +280,6 @@ export class Plot3DRenderer {
       }
     }
 
-    // 3. Empirical Data Points + Residual Drop-lines
     ctx.setLineDash([]);
     for (let i = 0; i < dataPoints.length; i++) {
       const pt = dataPoints[i];
@@ -315,7 +301,6 @@ export class Plot3DRenderer {
       ctx.strokeRect(px - 4, py - 4, 8, 8);
     }
 
-    // 4. Target Prediction Marker on the 3D Plane
     if (coeffs && Number(targetRange) > 0 && Number(targetMass) > 0) {
       const { a, b, c } = coeffs;
       const predF = a * Number(targetRange) + b * Number(targetMass) + c;

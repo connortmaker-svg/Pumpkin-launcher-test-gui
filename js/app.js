@@ -1,7 +1,3 @@
-// =============================================================================
-// ELC PUMPKIN LAUNCHER 2026 - MAIN APPLICATION CONTROLLER
-// =============================================================================
-
 import { DEFAULT_CONSTANTS, DEFAULT_MATH_INPUTS, evalPhysicsModel, validateConstants } from "./physics.js";
 import { SAMPLE_TRIALS, fitPlaneModel } from "./regression.js";
 import { Plot3DRenderer } from "./plot3d.js";
@@ -11,6 +7,10 @@ import {
   formatTrialsCSV,
   parseTrialsCSV,
   downloadTextFile,
+  loadGitHubConfig,
+  saveGitHubConfig,
+  pullStateFromGitHub,
+  pushStateToGitHub,
 } from "./storage.js";
 
 class PumpkinLauncherWebApp {
@@ -19,15 +19,22 @@ class PumpkinLauncherWebApp {
     this.dataPoints = SAMPLE_TRIALS.map((pt) => ({ ...pt }));
     this.selectedTrialIndices = new Set();
     this.planeCoeffs = null;
+    this.ghConfig = loadGitHubConfig();
+    this._ghAutoPushTimer = null;
 
     this._cacheDOM();
     this.plot3d = new Plot3DRenderer(this.el.canvasPlot);
 
-    this._restoreState();
+    const hadLocalState = this._restoreState();
+    this._syncGitHubInputsFromConfig();
     this._bindEvents();
     this._refreshConstantsSummary();
     this.recalcMathModel();
     this.refitPlane();
+
+    if (!hadLocalState) {
+      this.pullFromGitHub(true);
+    }
   }
 
   _cacheDOM() {
@@ -37,7 +44,6 @@ class PumpkinLauncherWebApp {
       tabBtns: Array.from(document.querySelectorAll(".tab-btn")),
       tabPanels: Array.from(document.querySelectorAll(".tab-panel")),
 
-      // Tab 1: Math Model
       mathMass: $("mathMass"),
       mathEff: $("mathEff"),
       mathBands: $("mathBands"),
@@ -51,7 +57,6 @@ class PumpkinLauncherWebApp {
       tbodyConstantsSummary: $("tbodyConstantsSummary"),
       tbodyMathDetails: $("tbodyMathDetails"),
 
-      // Tab 2: 3D Plane Regression
       trialForce: $("trialForce"),
       trialMass: $("trialMass"),
       trialRange: $("trialRange"),
@@ -60,6 +65,8 @@ class PumpkinLauncherWebApp {
       btnDeleteSelected: $("btnDeleteSelected"),
       btnClearTrials: $("btnClearTrials"),
       btnLoadSample: $("btnLoadSample"),
+      btnPushGitHubQuick: $("btnPushGitHubQuick"),
+      btnPullGitHubQuick: $("btnPullGitHubQuick"),
       btnExportCSV: $("btnExportCSV"),
       btnImportCSV: $("btnImportCSV"),
       fileInputCSV: $("fileInputCSV"),
@@ -77,7 +84,14 @@ class PumpkinLauncherWebApp {
       canvasPlot: $("canvasPlot"),
       btnReset3DView: $("btnReset3DView"),
 
-      // Tab 3: Settings (Constants)
+      ghRepo: $("ghRepo"),
+      ghBranch: $("ghBranch"),
+      ghToken: $("ghToken"),
+      ghAutoSync: $("ghAutoSync"),
+      lblGitHubSyncStatus: $("lblGitHubSyncStatus"),
+      btnPullGitHub: $("btnPullGitHub"),
+      btnPushGitHub: $("btnPushGitHub"),
+
       constSlingMass: $("constSlingMass"),
       constBandStrength: $("constBandStrength"),
       constBandRest: $("constBandRest"),
@@ -92,41 +106,65 @@ class PumpkinLauncherWebApp {
     };
   }
 
-  _restoreState() {
-    const saved = loadSavedState();
-    if (saved) {
-      if (saved.math_inputs) {
-        this.el.mathMass.value = saved.math_inputs.pumpkin_mass ?? DEFAULT_MATH_INPUTS.pumpkin_mass;
-        this.el.mathEff.value = saved.math_inputs.efficiency ?? DEFAULT_MATH_INPUTS.efficiency;
-        this.el.mathBands.value = saved.math_inputs.band_count ?? DEFAULT_MATH_INPUTS.band_count;
-        this.el.mathRange.value = saved.math_inputs.target_range ?? DEFAULT_MATH_INPUTS.target_range;
-      }
-      if (saved.regression_inputs) {
-        this.el.predRange.value = saved.regression_inputs.pred_range ?? 200;
-        this.el.predMass.value = saved.regression_inputs.pred_mass ?? 0.9;
-      }
-      if (saved.constants) {
-        this.constants = {
-          SLING_MASS: Number(saved.constants.SLING_MASS ?? DEFAULT_CONSTANTS.SLING_MASS),
-          BAND_STRENGTH: Number(saved.constants.BAND_STRENGTH ?? DEFAULT_CONSTANTS.BAND_STRENGTH),
-          BAND_REST_LENGTH: Number(saved.constants.BAND_REST_LENGTH ?? DEFAULT_CONSTANTS.BAND_REST_LENGTH),
-          LAUNCH_ANGLE_DEG: Number(saved.constants.LAUNCH_ANGLE_DEG ?? DEFAULT_CONSTANTS.LAUNCH_ANGLE_DEG),
-          GRAVITY: Number(saved.constants.GRAVITY ?? DEFAULT_CONSTANTS.GRAVITY),
-          DRAG_COEFFICIENT: Number(saved.constants.DRAG_COEFFICIENT ?? DEFAULT_CONSTANTS.DRAG_COEFFICIENT),
-          AIR_DENSITY: Number(saved.constants.AIR_DENSITY ?? DEFAULT_CONSTANTS.AIR_DENSITY),
-          PUMPKIN_DENSITY: Number(saved.constants.PUMPKIN_DENSITY ?? DEFAULT_CONSTANTS.PUMPKIN_DENSITY),
-          NEWTON_TO_LBF: Number(saved.constants.NEWTON_TO_LBF ?? DEFAULT_CONSTANTS.NEWTON_TO_LBF),
-        };
-      }
-      if (Array.isArray(saved.data_points) && saved.data_points.length > 0) {
-        this.dataPoints = saved.data_points.map((pt) => ({
-          force: Number(pt.force),
-          mass: Number(pt.mass),
-          range: Number(pt.range),
-        }));
-      }
+  _applyLoadedStateObject(saved) {
+    if (!saved) return false;
+    if (saved.math_inputs) {
+      this.el.mathMass.value = saved.math_inputs.pumpkin_mass ?? DEFAULT_MATH_INPUTS.pumpkin_mass;
+      this.el.mathEff.value = saved.math_inputs.efficiency ?? DEFAULT_MATH_INPUTS.efficiency;
+      this.el.mathBands.value = saved.math_inputs.band_count ?? DEFAULT_MATH_INPUTS.band_count;
+      this.el.mathRange.value = saved.math_inputs.target_range ?? DEFAULT_MATH_INPUTS.target_range;
+    }
+    if (saved.regression_inputs) {
+      this.el.predRange.value = saved.regression_inputs.pred_range ?? 200;
+      this.el.predMass.value = saved.regression_inputs.pred_mass ?? 0.9;
+    }
+    if (saved.constants) {
+      this.constants = {
+        SLING_MASS: Number(saved.constants.SLING_MASS ?? DEFAULT_CONSTANTS.SLING_MASS),
+        BAND_STRENGTH: Number(saved.constants.BAND_STRENGTH ?? DEFAULT_CONSTANTS.BAND_STRENGTH),
+        BAND_REST_LENGTH: Number(saved.constants.BAND_REST_LENGTH ?? DEFAULT_CONSTANTS.BAND_REST_LENGTH),
+        LAUNCH_ANGLE_DEG: Number(saved.constants.LAUNCH_ANGLE_DEG ?? DEFAULT_CONSTANTS.LAUNCH_ANGLE_DEG),
+        GRAVITY: Number(saved.constants.GRAVITY ?? DEFAULT_CONSTANTS.GRAVITY),
+        DRAG_COEFFICIENT: Number(saved.constants.DRAG_COEFFICIENT ?? DEFAULT_CONSTANTS.DRAG_COEFFICIENT),
+        AIR_DENSITY: Number(saved.constants.AIR_DENSITY ?? DEFAULT_CONSTANTS.AIR_DENSITY),
+        PUMPKIN_DENSITY: Number(saved.constants.PUMPKIN_DENSITY ?? DEFAULT_CONSTANTS.PUMPKIN_DENSITY),
+        NEWTON_TO_LBF: Number(saved.constants.NEWTON_TO_LBF ?? DEFAULT_CONSTANTS.NEWTON_TO_LBF),
+      };
+    }
+    if (Array.isArray(saved.data_points) && saved.data_points.length > 0) {
+      this.dataPoints = saved.data_points.map((pt) => ({
+        force: Number(pt.force),
+        mass: Number(pt.mass),
+        range: Number(pt.range),
+      }));
     }
     this._syncConstantsInputsFromState();
+    return true;
+  }
+
+  _restoreState() {
+    const saved = loadSavedState();
+    const ok = this._applyLoadedStateObject(saved);
+    this._syncConstantsInputsFromState();
+    return ok;
+  }
+
+  _syncGitHubInputsFromConfig() {
+    this.el.ghRepo.value = this.ghConfig.repo || "";
+    this.el.ghBranch.value = this.ghConfig.branch || "main";
+    this.el.ghToken.value = this.ghConfig.token || "";
+    this.el.ghAutoSync.checked = Boolean(this.ghConfig.autoSync);
+  }
+
+  _readGitHubConfigFromInputs() {
+    this.ghConfig = {
+      repo: this.el.ghRepo.value.trim(),
+      branch: this.el.ghBranch.value.trim() || "main",
+      token: this.el.ghToken.value.trim(),
+      autoSync: Boolean(this.el.ghAutoSync.checked),
+    };
+    saveGitHubConfig(this.ghConfig);
+    return this.ghConfig;
   }
 
   _syncConstantsInputsFromState() {
@@ -141,7 +179,7 @@ class PumpkinLauncherWebApp {
     this.el.constNToLbf.value = this.constants.NEWTON_TO_LBF;
   }
 
-  _persistState() {
+  _persistState(triggerGitHubAutoPush = false) {
     const state = {
       math_inputs: {
         pumpkin_mass: this.el.mathMass.value,
@@ -157,7 +195,76 @@ class PumpkinLauncherWebApp {
       data_points: this.dataPoints,
     };
     saveStateToStorage(state);
+
+    if (triggerGitHubAutoPush && this.ghConfig.autoSync && this.ghConfig.token && this.ghConfig.repo) {
+      if (this._ghAutoPushTimer) {
+        clearTimeout(this._ghAutoPushTimer);
+      }
+      this._ghAutoPushTimer = setTimeout(() => {
+        this.pushToGitHub(true);
+      }, 1200);
+    }
+
     return state;
+  }
+
+  async pullFromGitHub(silent = false) {
+    const cfg = this._readGitHubConfigFromInputs();
+    this.el.lblGitHubSyncStatus.className = "status-line muted";
+    this.el.lblGitHubSyncStatus.textContent = "[SYNCING] PULLING DATA FROM GITHUB...";
+    try {
+      const remoteState = await pullStateFromGitHub(cfg);
+      this._applyLoadedStateObject(remoteState);
+      this.recalcMathModel();
+      this.refitPlane();
+      this.el.lblGitHubSyncStatus.className = "status-line";
+      this.el.lblGitHubSyncStatus.textContent = `[OK] PULLED LATEST DATA FROM GITHUB (${this.dataPoints.length} TRIALS)`;
+      this.el.globalStatus.textContent = "[SYNCED WITH GITHUB]";
+    } catch (err) {
+      this.el.lblGitHubSyncStatus.className = silent ? "status-line muted" : "status-line error";
+      this.el.lblGitHubSyncStatus.textContent = silent
+        ? "[OFFLINE / LOCAL MODE] USING DEVICE LOCAL STORAGE"
+        : `[PULL ERROR] ${err.message}`;
+      if (!silent) {
+        window.alert(`Could not pull from GitHub:\n${err.message}`);
+      }
+    }
+  }
+
+  async pushToGitHub(silent = false) {
+    const cfg = this._readGitHubConfigFromInputs();
+    if (!cfg.token || !cfg.repo) {
+      if (!silent) {
+        this.switchTab("tabSettings");
+        this.el.lblGitHubSyncStatus.className = "status-line error";
+        this.el.lblGitHubSyncStatus.textContent =
+          "[SETUP NEEDED] ENTER GITHUB REPO (OWNER/REPO) AND ACCESS TOKEN ABOVE TO COMMIT TO GITHUB";
+        this.el.ghToken.focus();
+      }
+      return;
+    }
+
+    const state = this._persistState(false);
+    this.el.lblGitHubSyncStatus.className = "status-line muted";
+    this.el.lblGitHubSyncStatus.textContent = "[SYNCING] COMMITTING CSV & JSON TO GITHUB...";
+    this.el.globalStatus.textContent = "[SAVING TO GITHUB...]";
+
+    try {
+      await pushStateToGitHub(cfg, state);
+      this.el.lblGitHubSyncStatus.className = "status-line";
+      this.el.lblGitHubSyncStatus.textContent = `[OK] COMMITTED pumpkin_launch_data.csv & launcher_state.json TO ${cfg.repo} (${cfg.branch})`;
+      this.el.globalStatus.textContent = "[SAVED TO GITHUB]";
+      if (!silent) {
+        window.alert(`Saved pumpkin_launch_data.csv and launcher_state.json to GitHub (${cfg.repo}@${cfg.branch}).`);
+      }
+    } catch (err) {
+      this.el.lblGitHubSyncStatus.className = "status-line error";
+      this.el.lblGitHubSyncStatus.textContent = `[PUSH ERROR] ${err.message}`;
+      this.el.globalStatus.textContent = "[SAVED LOCALLY ONLY]";
+      if (!silent) {
+        window.alert(`GitHub push failed:\n${err.message}`);
+      }
+    }
   }
 
   switchTab(tabId) {
@@ -173,12 +280,10 @@ class PumpkinLauncherWebApp {
   }
 
   _bindEvents() {
-    // Tab Switching
     for (const btn of this.el.tabBtns) {
       btn.addEventListener("click", () => this.switchTab(btn.dataset.tab));
     }
 
-    // Tab 1: Auto-calc inputs
     for (const input of [this.el.mathMass, this.el.mathEff, this.el.mathBands, this.el.mathRange]) {
       input.addEventListener("input", () => this.recalcMathModel());
     }
@@ -197,7 +302,6 @@ class PumpkinLauncherWebApp {
     });
     this.el.btnGoSettings.addEventListener("click", () => this.switchTab("tabSettings"));
 
-    // Tab 2: Trial Data & Auto-calc prediction
     this.el.btnAddTrial.addEventListener("click", () => this.addTrialPoint());
     for (const inp of [this.el.trialForce, this.el.trialMass, this.el.trialRange]) {
       inp.addEventListener("keydown", (e) => {
@@ -214,16 +318,18 @@ class PumpkinLauncherWebApp {
       if (window.confirm("Remove all recorded launch trials?")) {
         this.dataPoints = [];
         this.selectedTrialIndices.clear();
-        this.refitPlane();
+        this.refitPlane(true);
       }
     });
     this.el.btnLoadSample.addEventListener("click", () => {
       this.dataPoints = SAMPLE_TRIALS.map((pt) => ({ ...pt }));
       this.selectedTrialIndices.clear();
-      this.refitPlane();
+      this.refitPlane(true);
     });
 
-    // CSV & JSON Import/Export
+    this.el.btnPushGitHubQuick.addEventListener("click", () => this.pushToGitHub(false));
+    this.el.btnPullGitHubQuick.addEventListener("click", () => this.pullFromGitHub(false));
+
     this.el.btnExportCSV.addEventListener("click", () => {
       if (this.dataPoints.length === 0) return;
       const csvText = formatTrialsCSV(this.dataPoints);
@@ -233,13 +339,12 @@ class PumpkinLauncherWebApp {
     this.el.fileInputCSV.addEventListener("change", (e) => this._handleCSVImport(e));
 
     this.el.btnExportJSON.addEventListener("click", () => {
-      const state = this._persistState();
+      const state = this._persistState(false);
       downloadTextFile("launcher_state.json", JSON.stringify(state, null, 2), "application/json;charset=utf-8");
     });
     this.el.btnImportJSON.addEventListener("click", () => this.el.fileInputJSON.click());
     this.el.fileInputJSON.addEventListener("change", (e) => this._handleJSONImport(e));
 
-    // Prediction inputs
     for (const btn of this.el.predPresetBtns) {
       btn.addEventListener("click", () => {
         this.el.predRange.value = btn.dataset.predRange;
@@ -250,7 +355,13 @@ class PumpkinLauncherWebApp {
     this.el.predMass.addEventListener("input", () => this.updatePlanePrediction());
     this.el.btnReset3DView.addEventListener("click", () => this.plot3d.resetView());
 
-    // Tab 3: Constants Settings
+    for (const ghInp of [this.el.ghRepo, this.el.ghBranch, this.el.ghToken, this.el.ghAutoSync]) {
+      ghInp.addEventListener("input", () => this._readGitHubConfigFromInputs());
+      ghInp.addEventListener("change", () => this._readGitHubConfigFromInputs());
+    }
+    this.el.btnPullGitHub.addEventListener("click", () => this.pullFromGitHub(false));
+    this.el.btnPushGitHub.addEventListener("click", () => this.pushToGitHub(false));
+
     const constInputs = [
       this.el.constSlingMass,
       this.el.constBandStrength,
@@ -342,7 +453,7 @@ class PumpkinLauncherWebApp {
       });
       this.el.tbodyMathPresets.innerHTML = presetRows.join("");
 
-      this._persistState();
+      this._persistState(false);
     } catch (err) {
       this.el.lblMathForceLbf.textContent = "-- LBF";
       this.el.lblMathForceSub.className = "status-line error";
@@ -372,7 +483,7 @@ class PumpkinLauncherWebApp {
 
       this.recalcMathModel();
       this.updatePlanePrediction();
-      this._persistState();
+      this._persistState(true);
     } catch (err) {
       this.el.lblSettingsStatus.className = "status-line error";
       this.el.lblSettingsStatus.textContent = `[INVALID CONSTANT] ${err.message}`;
@@ -393,21 +504,20 @@ class PumpkinLauncherWebApp {
     this.el.trialForce.value = "";
     this.el.trialMass.value = "";
     this.el.trialRange.value = "";
-    this.refitPlane();
+    this.refitPlane(true);
   }
 
   deleteSelectedTrials() {
     if (this.selectedTrialIndices.size === 0) return;
     this.dataPoints = this.dataPoints.filter((_, idx) => !this.selectedTrialIndices.has(idx));
     this.selectedTrialIndices.clear();
-    this.refitPlane();
+    this.refitPlane(true);
   }
 
-  refitPlane() {
+  refitPlane(triggerGitHubAutoPush = false) {
     const fit = fitPlaneModel(this.dataPoints);
     this.planeCoeffs = fit.coeffs;
 
-    // Render trial rows
     this.el.tbodyTrials.innerHTML = this.dataPoints
       .map((pt, idx) => {
         let predStr = "--";
@@ -431,7 +541,6 @@ class PumpkinLauncherWebApp {
       })
       .join("");
 
-    // Bind row selection click for touch/mouse
     const rows = this.el.tbodyTrials.querySelectorAll("tr.clickable-row");
     for (const row of rows) {
       row.addEventListener("click", () => {
@@ -464,7 +573,7 @@ class PumpkinLauncherWebApp {
     }
 
     this.updatePlanePrediction();
-    this._persistState();
+    this._persistState(triggerGitHubAutoPush);
   }
 
   updatePlanePrediction() {
@@ -516,7 +625,7 @@ class PumpkinLauncherWebApp {
       targetMass: mass,
     });
 
-    this._persistState();
+    this._persistState(false);
   }
 
   _handleCSVImport(event) {
@@ -531,7 +640,7 @@ class PumpkinLauncherWebApp {
       }
       this.dataPoints = parsed;
       this.selectedTrialIndices.clear();
-      this.refitPlane();
+      this.refitPlane(true);
     };
     reader.readAsText(file);
     event.target.value = "";
@@ -547,7 +656,7 @@ class PumpkinLauncherWebApp {
         saveStateToStorage(state);
         this._restoreState();
         this.recalcMathModel();
-        this.refitPlane();
+        this.refitPlane(true);
       } catch (err) {
         window.alert(`Invalid JSON state file: ${err.message}`);
       }
@@ -561,8 +670,6 @@ window.addEventListener("DOMContentLoaded", () => {
   new PumpkinLauncherWebApp();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      // Service worker optional when opened via file:// protocol
-    });
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 });

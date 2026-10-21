@@ -32,9 +32,6 @@ except ImportError:
 
     es = _FallbackSolver()
 
-# =============================================================================
-# ELC GUI THEME PALETTE (Softer Dark Surfaces, Higher Visibility, Less Glare)
-# =============================================================================
 BG_MAIN = "#1A1A1A"
 SURFACE_1 = "#222222"
 SURFACE_2 = "#2A2A2A"
@@ -50,10 +47,8 @@ BORDER_MID = "#5A5A5A"
 ERROR_RED = "#FF5555"
 SUCCESS_GREEN = "#38D952"
 
-# Use native fast monospace font per OS to avoid X11/fontconfig lookup stalls on Raspberry Pi
 FONT_FAMILY = "Courier New" if sys.platform.startswith("win") else "Courier"
 
-# Pre-allocated font tuples to avoid repeated Tcl font object allocations
 FONT_BODY = (FONT_FAMILY, 12)
 FONT_BOLD = (FONT_FAMILY, 12, "bold")
 FONT_HEADER = (FONT_FAMILY, 22, "bold")
@@ -175,7 +170,6 @@ class PumpkinLauncherGUI:
         self._suppress_trace = True
         loaded_trials = None
 
-        # 1. Load JSON state (inputs, constants, and backup data_points)
         if os.path.exists(DEFAULT_JSON_PATH):
             try:
                 with open(DEFAULT_JSON_PATH, mode="r", encoding="utf-8") as f:
@@ -225,7 +219,6 @@ class PumpkinLauncherGUI:
             except Exception:
                 pass
 
-        # 2. If pumpkin_launch_data.csv exists, prefer its trial rows so external CSV edits work seamlessly
         if os.path.exists(DEFAULT_CSV_PATH):
             try:
                 csv_trials = []
@@ -514,9 +507,6 @@ class PumpkinLauncherGUI:
         if self.notebook.index("current") == 1:
             self._schedule_plot_redraw()
 
-    # =========================================================================
-    # TAB 1: PHYSICS MATH MODEL (AUTO-CALCULATING)
-    # =========================================================================
     def _build_math_tab(self):
         left_col = ttk.Frame(self.tab_math)
         left_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 14))
@@ -524,7 +514,6 @@ class PumpkinLauncherGUI:
         right_col = ttk.Frame(self.tab_math)
         right_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # --- Non-Constant Inputs Panel ---
         in_outer, in_frame = self._create_gold_panel(left_col, "NON-CONSTANT INPUTS (AUTO-UPDATE)")
         in_outer.pack(fill=tk.X, pady=(0, 12))
 
@@ -574,7 +563,6 @@ class PumpkinLauncherGUI:
             command=lambda: self.notebook.select(self.tab_settings),
         ).pack(side=tk.LEFT)
 
-        # --- Active Constants Summary Panel ---
         const_outer, const_frame = self._create_gold_panel(left_col, "ACTIVE LAUNCHER CONSTANTS")
         const_outer.pack(fill=tk.BOTH, expand=True)
 
@@ -600,7 +588,6 @@ class PumpkinLauncherGUI:
                 row=idx, column=1, sticky=tk.W, padx=(16, 0), pady=3
             )
 
-        # --- Right Column: Giant Output Readout ---
         res_outer, res_frame = self._create_gold_panel(
             right_col,
             "CALCULATED PULLBACK FORCE [F = 0.2248 * (m_total * v_0^2) / (n * d)]",
@@ -615,7 +602,6 @@ class PumpkinLauncherGUI:
         self.lbl_math_force_n = ttk.Label(res_frame, text="[WAITING]", style="StatusOk.TLabel")
         self.lbl_math_force_n.pack(anchor=tk.W, pady=(4, 0))
 
-        # --- Preset Ranges Table (Pre-allocated rows for zero-lag updates) ---
         tbl_outer, tbl_frame = self._create_gold_panel(
             right_col, "TARGET RANGE MATRIX (50 / 100 / 200 / 300 FT)"
         )
@@ -640,7 +626,6 @@ class PumpkinLauncherGUI:
             for r in (50, 100, 200, 300)
         ]
 
-        # --- Intermediate Physics Quantities ---
         det_outer, det_frame = self._create_gold_panel(right_col, "INTERMEDIATE MODEL VALUES")
         det_outer.pack(fill=tk.BOTH, expand=True)
 
@@ -808,9 +793,6 @@ class PumpkinLauncherGUI:
             self.lbl_math_force_n.config(text=f"[INPUT PENDING] {exc}", style="StatusErr.TLabel")
             self.lbl_global_status.config(text="[CHECK INPUT]")
 
-    # =========================================================================
-    # TAB 2: EMPIRICAL LINEAR REGRESSION (3D PLANE FIT, AUTO-CALCULATING)
-    # =========================================================================
     def _build_regression_tab(self):
         left_pane = ttk.Frame(self.tab_regression)
         left_pane.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 14))
@@ -818,7 +800,6 @@ class PumpkinLauncherGUI:
         right_pane = ttk.Frame(self.tab_regression)
         right_pane.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # --- Step 1: Data Entry ---
         add_outer, add_frame = self._create_gold_panel(left_pane, "ADD TRIAL DATA (FORCE / MASS / RANGE)")
         add_outer.pack(fill=tk.X, pady=(0, 10))
 
@@ -857,7 +838,6 @@ class PumpkinLauncherGUI:
         for ent in (ent_df, ent_dm, ent_dr):
             ent.bind("<Return>", lambda _e: self.add_data_point())
 
-        # --- Recorded Trials Table ---
         tbl_outer, tbl_frame = self._create_gold_panel(left_pane, "RECORDED LAUNCH TRIALS (MIN 3 POINTS)")
         tbl_outer.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
@@ -882,7 +862,6 @@ class PumpkinLauncherGUI:
         self.tree_data.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Table action buttons
         tbl_btns = ttk.Frame(left_pane)
         tbl_btns.pack(fill=tk.X)
 
@@ -908,7 +887,6 @@ class PumpkinLauncherGUI:
             side=tk.RIGHT, padx=(0, 6)
         )
 
-        # --- Right Pane Step 2: Fitted Plane Equation ---
         fit_outer, fit_frame = self._create_gold_panel(
             right_pane, "FITTED 3D PLANE MODEL [FORCE = A*RANGE + B*MASS + C]", pad=8
         )
@@ -928,7 +906,6 @@ class PumpkinLauncherGUI:
         )
         self.lbl_plane_stats.pack(anchor=tk.W, pady=(4, 0))
 
-        # --- Right Pane Step 3: Auto-Predicted Force Readout ---
         pred_outer, pred_frame = self._create_gold_panel(
             right_pane, "REQUIRED PULLBACK FORCE FROM PLANE (AUTO-UPDATE)", pad=10, surface_bg=SURFACE_1
         )
@@ -998,7 +975,6 @@ class PumpkinLauncherGUI:
         self.tree_pred_all.pack(fill=tk.X)
         self._pred_row_iid = self.tree_pred_all.insert("", tk.END, values=("--", "--", "--", "--"))
 
-        # --- Right Pane Step 4: Interactive 3D Surface / Plane Graph ---
         plot_outer, plot_frame = self._create_gold_panel(
             right_pane,
             "3D PLANE GRAPH (DRAG MOUSE TO ROTATE: X=RANGE, Y=MASS, Z=FORCE)",
@@ -1033,9 +1009,6 @@ class PumpkinLauncherGUI:
         self.canvas_plot.bind("<B1-Motion>", self._on_plot_drag)
         self.canvas_plot.bind("<ButtonRelease-1>", self._on_plot_release)
 
-    # =========================================================================
-    # TAB 3: LAUNCHER SETTINGS / CONSTANTS PANEL
-    # =========================================================================
     def _build_settings_tab(self):
         container = ttk.Frame(self.tab_settings)
         container.pack(fill=tk.BOTH, expand=True)
@@ -1636,7 +1609,6 @@ class PumpkinLauncherGUI:
             font=FONT_PLOT_MD,
         )
 
-        # 2. Draw Fitted 3D Plane Surface Mesh (planar lines need only 2 endpoints!)
         if self.plane_coeffs is not None:
             a, b, k = self.plane_coeffs
             grid_r = 6
@@ -1670,7 +1642,6 @@ class PumpkinLauncherGUI:
                         dash=(4, 2),
                     )
 
-        # 3. Draw Empirical Data Points in 3D + Residual Segments to Plane
         for pt in self.data_points:
             px, py = project(pt["range"], pt["mass"], pt["force"])
             if self.plane_coeffs is not None:
@@ -1690,7 +1661,6 @@ class PumpkinLauncherGUI:
                 width=1,
             )
 
-        # 4. Highlight Selected Target Prediction Point on the 3D Plane
         if self.plane_coeffs is not None:
             try:
                 target_r = float(self.var_pred_range.get())
