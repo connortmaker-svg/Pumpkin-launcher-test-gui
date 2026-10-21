@@ -10,56 +10,56 @@
     "pred_mass": "0.9"
   },
   "constants": {
-    "SLING_MASS": "1.5",
-    "BAND_STRENGTH": "55.4913",
-    "BAND_REST_LENGTH": "0.254",
-    "LAUNCH_ANGLE_DEG": "45.0",
-    "GRAVITY": "9.81",
-    "DRAG_COEFFICIENT": "0.55",
-    "AIR_DENSITY": "1.21",
-    "PUMPKIN_DENSITY": "800.0",
-    "NEWTON_TO_LBF": "0.2248"
+    "SLING_MASS": 1.5,
+    "BAND_STRENGTH": 55.4913,
+    "BAND_REST_LENGTH": 0.254,
+    "LAUNCH_ANGLE_DEG": 45,
+    "GRAVITY": 9.81,
+    "DRAG_COEFFICIENT": 0.55,
+    "AIR_DENSITY": 1.21,
+    "PUMPKIN_DENSITY": 800,
+    "NEWTON_TO_LBF": 0.2248
   },
   "data_points": [
     {
-      "force": 42.0,
+      "force": 42,
       "mass": 0.75,
-      "range": 55.0
+      "range": 55
     },
     {
-      "force": 48.0,
+      "force": 48,
       "mass": 1.05,
-      "range": 50.0
+      "range": 50
     },
     {
-      "force": 74.0,
+      "force": 74,
       "mass": 0.8,
-      "range": 105.0
+      "range": 105
     },
     {
-      "force": 82.0,
+      "force": 82,
       "mass": 1.15,
-      "range": 98.0
+      "range": 98
     },
     {
-      "force": 122.0,
+      "force": 122,
       "mass": 0.85,
-      "range": 195.0
+      "range": 195
     },
     {
-      "force": 135.0,
+      "force": 135,
       "mass": 1.2,
-      "range": 205.0
+      "range": 205
     },
     {
-      "force": 172.0,
+      "force": 172,
       "mass": 0.9,
-      "range": 295.0
+      "range": 295
     },
     {
-      "force": 188.0,
+      "force": 188,
       "mass": 1.25,
-      "range": 305.0
+      "range": 305
     }
   ]
 }
