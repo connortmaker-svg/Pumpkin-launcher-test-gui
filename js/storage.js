@@ -24,19 +24,40 @@ export function loadGitHubConfig() {
     token: "",
     autoSync: true,
   };
+  let cfg = { ...fallback };
   try {
     const raw = localStorage.getItem(GH_CONFIG_KEY);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return {
-      repo: parsed.repo || fallback.repo,
-      branch: parsed.branch || "main",
-      token: parsed.token || "",
-      autoSync: parsed.autoSync !== undefined ? Boolean(parsed.autoSync) : true,
-    };
-  } catch (_err) {
-    return fallback;
-  }
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      cfg = {
+        repo: parsed.repo || fallback.repo,
+        branch: parsed.branch || "main",
+        token: parsed.token || "",
+        autoSync: parsed.autoSync !== undefined ? Boolean(parsed.autoSync) : true,
+      };
+    }
+  } catch (_err) {}
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = (params.get("token") || "").trim();
+    const urlRepo = (params.get("repo") || "").trim();
+    const urlBranch = (params.get("branch") || "").trim();
+    if (urlToken || urlRepo || urlBranch) {
+      if (urlToken) cfg.token = urlToken;
+      if (urlRepo) cfg.repo = urlRepo;
+      if (urlBranch) cfg.branch = urlBranch;
+      saveGitHubConfig(cfg);
+      params.delete("token");
+      params.delete("repo");
+      params.delete("branch");
+      const qs = params.toString();
+      const cleanUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  } catch (_err) {}
+
+  return cfg;
 }
 
 export function saveGitHubConfig(cfg) {
