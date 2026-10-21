@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1A1A1A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ELC Launcher">
+  <meta name="description" content="ELC Pumpkin Launcher 2026 Force Calculator and 3D Plane Regression">
+  <title>ELC PUMPKIN LAUNCHER 2026 - FORCE CALCULATOR</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="top-bar">
+    <h1 class="app-title">ELC PUMPKIN LAUNCHER 2026</h1>
+    <div id="globalStatus" class="top-status">[OFFLINE AUTO-SAVED]</div>
+  </header>
+
+  <main class="app-container">
+    <nav class="tab-bar" role="tablist">
+      <button type="button" class="tab-btn active" data-tab="tabMath">[1] PHYSICS MODEL</button>
+      <button type="button" class="tab-btn" data-tab="tabRegression">[2] 3D PLANE REGRESSION</button>
+      <button type="button" class="tab-btn" data-tab="tabSettings">[3] LAUNCHER SETTINGS (CONSTANTS)</button>
+    </nav>
+
+    <!-- ================================================================== -->
+    <!-- TAB 1: PHYSICS MATH MODEL                                          -->
+    <!-- ================================================================== -->
+    <section id="tabMath" class="tab-panel active">
+      <div class="split-grid">
+        <div class="col-stack">
+          <div class="panel">
+            <div class="panel-header">NON-CONSTANT INPUTS (AUTO-UPDATE)</div>
+            <div class="panel-body">
+              <div class="field-grid">
+                <label class="field-label" for="mathMass">PUMPKIN MASS m_p (KG)</label>
+                <input id="mathMass" class="num-input" type="number" inputmode="decimal" step="any" value="0.9">
+
+                <label class="field-label" for="mathEff">EFFICIENCY n (0-1)</label>
+                <input id="mathEff" class="num-input" type="number" inputmode="decimal" step="any" value="0.8">
+
+                <label class="field-label" for="mathBands">BAND COUNT B</label>
+                <input id="mathBands" class="num-input" type="number" inputmode="decimal" step="any" value="24">
+
+                <label class="field-label" for="mathRange">TARGET RANGE R (FT)</label>
+                <input id="mathRange" class="num-input" type="number" inputmode="decimal" step="any" value="300">
+              </div>
+
+              <div class="preset-row">
+                <span class="field-label">QUICK RANGE:</span>
+                <button type="button" class="btn" data-math-range="50">50FT</button>
+                <button type="button" class="btn" data-math-range="100">100FT</button>
+                <button type="button" class="btn" data-math-range="200">200FT</button>
+                <button type="button" class="btn active-preset" data-math-range="300">300FT</button>
+              </div>
+
+              <div class="action-row">
+                <button id="btnResetMath" type="button" class="btn">RESET INPUT DEFAULTS</button>
+                <button id="btnGoSettings" type="button" class="btn">EDIT CONSTANTS &gt;</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">ACTIVE LAUNCHER CONSTANTS</div>
+            <div class="panel-body">
+              <table class="kv-table">
+                <tbody id="tbodyConstantsSummary"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-stack">
+          <div class="panel panel-surface">
+            <div class="panel-header">CALCULATED PULLBACK FORCE [F = 0.2248 * (m_total * v_0^2) / (n * d)]</div>
+            <div class="panel-body">
+              <div id="lblMathForceLbf" class="readout-huge">-- LBF</div>
+              <div id="lblMathForceSub" class="status-line">[WAITING]</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">TARGET RANGE MATRIX (50 / 100 / 200 / 300 FT)</div>
+            <div class="panel-body">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>RANGE (FT)</th>
+                      <th>v_vac (M/S)</th>
+                      <th>v_0 (M/S)</th>
+                      <th>d (M)</th>
+                      <th>S_r (d/L_0)</th>
+                      <th>FORCE (LBF)</th>
+                      <th>FORCE (N)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyMathPresets"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">INTERMEDIATE MODEL VALUES</div>
+            <div class="panel-body">
+              <table class="kv-table">
+                <tbody id="tbodyMathDetails"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- TAB 2: 3D PLANE REGRESSION                                         -->
+    <!-- ================================================================== -->
+    <section id="tabRegression" class="tab-panel">
+      <div class="split-grid-regression">
+        <div class="col-stack">
+          <div class="panel">
+            <div class="panel-header">ADD TRIAL DATA (FORCE / MASS / RANGE)</div>
+            <div class="panel-body">
+              <div class="trial-input-grid">
+                <div class="trial-field">
+                  <label for="trialForce">FORCE (LBF)</label>
+                  <input id="trialForce" class="num-input" type="number" inputmode="decimal" step="any">
+                </div>
+                <div class="trial-field">
+                  <label for="trialMass">MASS (KG)</label>
+                  <input id="trialMass" class="num-input" type="number" inputmode="decimal" step="any">
+                </div>
+                <div class="trial-field">
+                  <label for="trialRange">RANGE (FT)</label>
+                  <input id="trialRange" class="num-input" type="number" inputmode="decimal" step="any">
+                </div>
+                <button id="btnAddTrial" type="button" class="btn btn-primary">ADD POINT</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">RECORDED LAUNCH TRIALS (TAP ROW TO SELECT)</div>
+            <div class="panel-body">
+              <div class="table-wrap table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>FORCE (LBF)</th>
+                      <th>MASS (KG)</th>
+                      <th>RANGE (FT)</th>
+                      <th>FIT (LBF)</th>
+                      <th>ERR (LBF)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyTrials"></tbody>
+                </table>
+              </div>
+
+              <div class="action-row">
+                <button id="btnDeleteSelected" type="button" class="btn btn-danger">DELETE SELECTED</button>
+                <button id="btnClearTrials" type="button" class="btn btn-danger">CLEAR ALL</button>
+                <button id="btnLoadSample" type="button" class="btn">LOAD SAMPLE</button>
+              </div>
+
+              <div class="action-row">
+                <button id="btnExportCSV" type="button" class="btn">EXPORT CSV</button>
+                <button id="btnImportCSV" type="button" class="btn">IMPORT CSV</button>
+                <button id="btnExportJSON" type="button" class="btn">EXPORT JSON</button>
+                <button id="btnImportJSON" type="button" class="btn">IMPORT JSON</button>
+                <input id="fileInputCSV" type="file" accept=".csv,text/csv" hidden>
+                <input id="fileInputJSON" type="file" accept=".json,application/json" hidden>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-stack">
+          <div class="panel">
+            <div class="panel-header">FITTED 3D PLANE MODEL [FORCE = A*RANGE + B*MASS + C]</div>
+            <div class="panel-body">
+              <div id="lblPlaneEq" class="equation-line">[WAITING FOR &gt;= 3 DATA POINTS]</div>
+              <div id="lblPlaneStats" class="status-line muted">R^2 = --  |  RMSE = --</div>
+            </div>
+          </div>
+
+          <div class="panel panel-surface">
+            <div class="panel-header">REQUIRED PULLBACK FORCE FROM PLANE (AUTO-UPDATE)</div>
+            <div class="panel-body">
+              <div class="preset-row" style="margin-top: 0; margin-bottom: 10px;">
+                <span class="field-label">DESIRED RANGE (FT):</span>
+                <button type="button" class="btn" data-pred-range="50">50FT</button>
+                <button type="button" class="btn" data-pred-range="100">100FT</button>
+                <button type="button" class="btn active-preset" data-pred-range="200">200FT</button>
+                <button type="button" class="btn" data-pred-range="300">300FT</button>
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="predRange">CUSTOM RANGE (FT)</label>
+                <input id="predRange" class="num-input" type="number" inputmode="decimal" step="any" value="200">
+
+                <label class="field-label" for="predMass">PUMPKIN MASS (KG)</label>
+                <input id="predMass" class="num-input" type="number" inputmode="decimal" step="any" value="0.9">
+              </div>
+
+              <div class="divider"></div>
+
+              <div id="lblPredForceLbf" class="readout-huge">-- LBF</div>
+              <div id="lblPredForceSub" class="status-line" style="margin-bottom: 10px;">[WAITING]</div>
+
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>50 FT TARGET</th>
+                      <th>100 FT TARGET</th>
+                      <th>200 FT TARGET</th>
+                      <th>300 FT TARGET</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr id="trPredAllTargets">
+                      <td>--</td>
+                      <td>--</td>
+                      <td>--</td>
+                      <td>--</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">3D PLANE GRAPH (DRAG / TOUCH TO ORBIT: X=RANGE, Y=MASS, Z=FORCE)</div>
+            <div class="panel-body">
+              <div class="canvas-toolbar">
+                <span class="status-line muted">[TOUCH OR DRAG CANVAS TO ORBIT 3D VIEW]</span>
+                <button id="btnReset3DView" type="button" class="btn">RESET 3D VIEW</button>
+              </div>
+              <canvas id="canvasPlot" class="plot-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- TAB 3: LAUNCHER SETTINGS (CONSTANTS)                               -->
+    <!-- ================================================================== -->
+    <section id="tabSettings" class="tab-panel">
+      <div class="panel">
+        <div class="panel-header">LAUNCHER PHYSICAL CONSTANTS (CHANGES APPLY &amp; SAVE AUTOMATICALLY)</div>
+        <div class="panel-body">
+          <div class="settings-grid">
+            <label class="field-label" for="constSlingMass">SLING MASS m_s (KG)</label>
+            <input id="constSlingMass" class="num-input" type="number" inputmode="decimal" step="any" value="1.5">
+            <div class="settings-desc">Mass of the pouch/sling assembly accelerated by bands</div>
+
+            <label class="field-label" for="constBandStrength">SINGLE BAND STRENGTH S (N)</label>
+            <input id="constBandStrength" class="num-input" type="number" inputmode="decimal" step="any" value="55.4913">
+            <div class="settings-desc">Default: 4.4482 * ((14.3 + 21.3/2) / 2) = 55.4913 N</div>
+
+            <label class="field-label" for="constBandRest">BAND REST LENGTH L_0 (M)</label>
+            <input id="constBandRest" class="num-input" type="number" inputmode="decimal" step="any" value="0.254">
+            <div class="settings-desc">Unstretched length of rubber bands in meters (0.254 m = 10 in)</div>
+
+            <label class="field-label" for="constAngleDeg">LAUNCH ANGLE j (DEGREES)</label>
+            <input id="constAngleDeg" class="num-input" type="number" inputmode="decimal" step="any" value="45">
+            <div class="settings-desc">Elevation angle of the launcher track (0 to 90 degrees)</div>
+
+            <label class="field-label" for="constGravity">GRAVITY g (M/S^2)</label>
+            <input id="constGravity" class="num-input" type="number" inputmode="decimal" step="any" value="9.81">
+            <div class="settings-desc">Gravitational acceleration (standard: 9.81 m/s^2)</div>
+
+            <label class="field-label" for="constDrag">DRAG COEFFICIENT c</label>
+            <input id="constDrag" class="num-input" type="number" inputmode="decimal" step="any" value="0.55">
+            <div class="settings-desc">Aerodynamic sphere/pumpkin drag coefficient (default: 0.55)</div>
+
+            <label class="field-label" for="constAirRho">AIR DENSITY p (KG/M^3)</label>
+            <input id="constAirRho" class="num-input" type="number" inputmode="decimal" step="any" value="1.21">
+            <div class="settings-desc">Local air density (Rochester default: 1.21 kg/m^3)</div>
+
+            <label class="field-label" for="constPumpkinRho">PUMPKIN DENSITY (KG/M^3)</label>
+            <input id="constPumpkinRho" class="num-input" type="number" inputmode="decimal" step="any" value="800">
+            <div class="settings-desc">Average pumpkin density used for sphere radius (default: 800 kg/m^3)</div>
+
+            <label class="field-label" for="constNToLbf">NEWTON TO LBF CONVERSION</label>
+            <input id="constNToLbf" class="num-input" type="number" inputmode="decimal" step="any" value="0.2248">
+            <div class="settings-desc">Conversion factor from Newtons to pounds-force (0.2248 lbf/N)</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="canvas-toolbar">
+            <div id="lblSettingsStatus" class="status-line">[OK] ALL CONSTANTS VALID AND ACTIVE</div>
+            <button id="btnResetConstants" type="button" class="btn btn-primary">RESET CONSTANTS TO DEFAULTS</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

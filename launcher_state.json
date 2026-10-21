@@ -1,0 +1,65 @@
+{
+  "math_inputs": {
+    "pumpkin_mass": "0.9",
+    "efficiency": "0.8",
+    "band_count": "24",
+    "target_range": "300"
+  },
+  "regression_inputs": {
+    "pred_range": "200",
+    "pred_mass": "0.9"
+  },
+  "constants": {
+    "SLING_MASS": "1.5",
+    "BAND_STRENGTH": "55.4913",
+    "BAND_REST_LENGTH": "0.254",
+    "LAUNCH_ANGLE_DEG": "45.0",
+    "GRAVITY": "9.81",
+    "DRAG_COEFFICIENT": "0.55",
+    "AIR_DENSITY": "1.21",
+    "PUMPKIN_DENSITY": "800.0",
+    "NEWTON_TO_LBF": "0.2248"
+  },
+  "data_points": [
+    {
+      "force": 42.0,
+      "mass": 0.75,
+      "range": 55.0
+    },
+    {
+      "force": 48.0,
+      "mass": 1.05,
+      "range": 50.0
+    },
+    {
+      "force": 74.0,
+      "mass": 0.8,
+      "range": 105.0
+    },
+    {
+      "force": 82.0,
+      "mass": 1.15,
+      "range": 98.0
+    },
+    {
+      "force": 122.0,
+      "mass": 0.85,
+      "range": 195.0
+    },
+    {
+      "force": 135.0,
+      "mass": 1.2,
+      "range": 205.0
+    },
+    {
+      "force": 172.0,
+      "mass": 0.9,
+      "range": 295.0
+    },
+    {
+      "force": 188.0,
+      "mass": 1.25,
+      "range": 305.0
+    }
+  ]
+}
